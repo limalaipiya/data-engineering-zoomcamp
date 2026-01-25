@@ -1,4 +1,4 @@
-insert into table
+Insert into table command
 
 docker run -it \
   --network=pipeline_default \
@@ -12,3 +12,6 @@ docker run -it \
     --year=2021 \
     --month=2 \
     --chunksize=100000
+
+- Docker Compose always creates a network and connects the containers automatically by default. 
+- The network name uses the folder name, like pipeline_default.
