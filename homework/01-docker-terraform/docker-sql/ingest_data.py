@@ -1,5 +1,6 @@
+import io
 import pandas as pd
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from tqdm import tqdm
 import click
 
@@ -20,6 +21,23 @@ def main(pg_user, pg_pass, pg_host, pg_port, pg_db, year, month, chunksize, targ
     run_ny_taxi(engine, year, month, chunksize, target_taxi_table)
     run_zones(engine, target_zone_table)
 
+def copy_df_to_sql(df, engine, table_name):
+    df.columns = df.columns.str.lower()  # เพิ่มบรรทัดนี้
+    buffer = io.StringIO()
+    df.to_csv(buffer, index=False, header=False)
+    buffer.seek(0)
+
+    conn = engine.raw_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.copy_expert(
+            f"COPY {table_name} ({', '.join(df.columns)}) FROM STDIN WITH (FORMAT CSV)",
+            buffer
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
 
 def run_ny_taxi(engine, year, month, chunksize, target_taxi_table):
     prefix = 'https://d37ci6vzurychx.cloudfront.net/trip-data'
@@ -30,33 +48,30 @@ def run_ny_taxi(engine, year, month, chunksize, target_taxi_table):
         engine='pyarrow'
     )
 
-    df_iter.head(0).to_sql(
-        name=target_taxi_table, 
-        con=engine, 
+    df_iter.head(0).rename(columns=str.lower).to_sql(
+        name=target_taxi_table,
+        con=engine,
         if_exists='replace',
         index=False
     )
     
     for i in tqdm(range(0, len(df_iter), chunksize)):
         df_chunk = df_iter.iloc[i:i+chunksize]
-        df_chunk.to_sql(
-            name=target_taxi_table, 
-            con=engine, 
-            if_exists='append',
-            index=False
-        )
+        copy_df_to_sql(df_chunk, engine, target_taxi_table)
 
 
 def run_zones(engine, target_zone_table):
     url = 'https://d37ci6vzurychx.cloudfront.net/misc/taxi+_zone_lookup.csv'
     df_zones = pd.read_csv(url)
-    
-    df_zones.to_sql(
+    df_zones = df_zones.rename(columns=str.lower)
+    df_zones.head(0).to_sql(
         name=target_zone_table, 
         con=engine, 
         if_exists='replace',
         index=False
     )
+
+    copy_df_to_sql(df_zones, engine, target_zone_table)
 
 
 if __name__ == '__main__':
