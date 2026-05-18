@@ -1,11 +1,6 @@
-variable "credentials" {
-  description = "My Credentials"
-  default     = "C:/data-engineering-zoomcamp/homework/01-docker-terraform/terraform/keys/my-creds.json"
-}
-
 variable "project" {
   description = "Project"
-  default     = "cogent-tangent-485513-u5"
+  default     = "project-d298a763-cbfb-48f5-8c9"
 }
 
 variable "region" {
@@ -25,7 +20,7 @@ variable "bq_dataset_name" {
 
 variable "gcs_bucket_name" {
   description = "Bucket name"
-  default     = "cogent-tangent-485513-u5-terra-bucket"
+  default     = "project-d298a763-cbfb-48f5-8c9-bucket"
 }
 
 variable "gcs_storage_class" {
